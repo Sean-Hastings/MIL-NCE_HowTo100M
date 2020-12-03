@@ -118,5 +118,7 @@ def get_args(description='MILNCE'):
                              'N processes per node, which has N GPUs. This is the '
                              'fastest way to use PyTorch for either single node or '
                              'multi node data parallel training')
+    parser.add_argument('--pmilnce', default=False, action="store_true",
+                        help='Flag to use the pmilnce loss, milnce otherwise.')
     args = parser.parse_args()
     return args

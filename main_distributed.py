@@ -182,10 +182,12 @@ def main_worker(gpu, ngpus_per_node, args):
     )
 
     # define loss function (criterion) and optimizer
-    criterion = PMILNCELoss()
     ''' #tag#
     '''
-    # criterion = MILNCELoss()
+    if args.pilmnce:
+        criterion = PMILNCELoss()
+    else:
+        criterion = MILNCELoss()
 
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), args.lr)
@@ -218,14 +220,19 @@ def main_worker(gpu, ngpus_per_node, args):
             args.rank, total_batch_size
         ), args
     )
+    print("Experiment loop started.")
+    train_metrics = []
+    val_metrics = []
+
     for epoch in range(args.start_epoch, args.epochs):
-        print("Hello! In epoch!")
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        if epoch % max(1, total_batch_size // 512) == 0 and args.evaluate:
-            evaluate(test_loader, model, epoch, args, 'YouCook2')
+        if epoch % 10 == 0 and args.evaluate:
+            val_res = evaluate(test_loader, model, epoch, args, 'YouCook2')
+            val_metrics.append(val_res)
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, scheduler, epoch, train_dataset, args)
+        train_res = train(train_loader, model, criterion, optimizer, scheduler, epoch, train_dataset, args)
+        train_metrics.append(train_res)
         if args.rank == 0:
             save_checkpoint(
                 {
@@ -235,19 +242,26 @@ def main_worker(gpu, ngpus_per_node, args):
                     "scheduler": scheduler.state_dict(),
                 }, checkpoint_dir, epoch + 1
             )
+    save_metric_pickle(train_metrics, "train_metrics", args)
+    save_metric_pickle(val_metrics, "val_metrics", args)
 
+def save_metric_pickle(data, filename, args):
+    path = os.path.join(os.path.dirname(__file__), 'log' , args.checkpoint_dir + "-" + filename + ".pickle")
+    with open(path, 'wb') as fp:
+        return pickle.dump(data, fp)
 
 def train(train_loader, model, criterion, optimizer, scheduler, epoch, dataset, args):
     running_loss = 0.0
     s = time.time()
+    step = 0.0
     for i_batch, sample_batch in enumerate(train_loader):
         s_step = time.time()
         batch_loss = TrainOneBatch(model, optimizer, scheduler, sample_batch, criterion, args)
-        print("calculated the loss")
         d_step = time.time() - s_step
         running_loss += batch_loss
+        step += 1.0
+        '''
         if (i_batch + 1) % args.n_display == 0 and args.verbose and args.rank == 0:
-            print("I am loggin!")
             d = time.time() - s
             log(
                 "Epoch %d, Elapsed Time: %.3f, Epoch status: %.4f, Training loss: %.4f, Learning rate: %.6f"
@@ -261,6 +275,17 @@ def train(train_loader, model, criterion, optimizer, scheduler, epoch, dataset, 
             )
             running_loss = 0.0
             s = time.time()
+        '''
+    log(
+        "Epoch %d, Epoch status: %.4f, Training loss: %.4f, Learning rate: %.6f"
+        % (
+            epoch + 1,
+            args.batch_size * args.world_size * float(i_batch) / len(dataset),
+            running_loss / step,
+            optimizer.param_groups[0]['lr'],
+        ), args
+    )
+    return [epoch, running_loss/step, optimizer.param_groups[0]['lr']]
 
 def TrainOneBatch(model, opt, scheduler, data, loss_fun, args):
     video = data["video"].float().cuda(args.gpu, non_blocking=args.pin_memory)
@@ -308,6 +333,7 @@ def evaluate(test_loader, model, epoch, args, dataset_name):
         all_video_embd = np.concatenate(all_video_embd, axis=0)
         metrics = compute_metrics(np.dot(all_txt_embd, all_video_embd.T))
         log('Epoch {} results: {}'.format(epoch, metrics), args)
+        return [epoch, metrics]
 
 def save_checkpoint(state, checkpoint_dir, epoch, n_ckpt=10):
     torch.save(state, os.path.join(checkpoint_dir, "epoch{:0>4d}.pth.tar".format(epoch)))
