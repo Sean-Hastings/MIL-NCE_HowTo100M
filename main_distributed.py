@@ -30,6 +30,11 @@ allgather = AllGather.apply
 ''' #tag#
 '''
 import pickle
+import sys
+
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore")
 
 def main():
     args = get_args()
@@ -42,9 +47,9 @@ def main():
         random.seed(args.seed)
         torch.manual_seed(args.seed)
 
-    print("node num is: ", args.world_size)
-    print("SLURM exists: ", "SLURM_NPROCS" in os.environ)
-    print("SLURM exists: ", "SLURM_NTASKS" in os.environ)
+    # print("node num is: ", args.world_size)
+    # print("SLURM exists: ", "SLURM_NPROCS" in os.environ)
+    # print("SLURM exists: ", "SLURM_NTASKS" in os.environ)
     # print(os.environ["SLURM_JOB_ID"])
     # print(os.environ["SLURM_PROCID"])
     # print(os.environ["SLURM_NTASKS"])
@@ -93,14 +98,14 @@ def main_worker(gpu, ngpus_per_node, args):
         args.num_class, space_to_depth=False, word2vec_path=args.word2vec_path, init=args.weight_init,
     )
     '''
-    USE_CUDA=torch.cuda.is_available()
-    if USE_CUDA:
-        DEVICE=torch.device('cuda:0')
-        args.gpu=0
-
-    print("CUDA:", USE_CUDA)
-    print("Device:", DEVICE)
-    print("os log paths are from:", os.path.dirname(__file__))
+    # USE_CUDA=torch.cuda.is_available()
+    # if USE_CUDA:
+    #     DEVICE=torch.device('cuda:0')
+    #     args.gpu=0
+    #
+    # print("CUDA:", USE_CUDA)
+    # print("Device:", DEVICE)
+    # print("os log paths are from:", os.path.dirname(__file__))
 
     if args.pretrain_cnn_path:
         net_data = torch.load(args.pretrain_cnn_path)
@@ -240,11 +245,11 @@ def main_worker(gpu, ngpus_per_node, args):
         if args.rank == 0:
             save_checkpoint(
                 {
-                    "epoch": epoch + 1,
+                    "epoch": epoch,
                     "state_dict": model.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "scheduler": scheduler.state_dict(),
-                }, checkpoint_dir, epoch + 1
+                }, checkpoint_dir, epoch
             )
     save_metric_pickle(train_metrics, "train_metrics", args)
     save_metric_pickle(val_metrics, "val_metrics", args)
@@ -281,10 +286,9 @@ def train(train_loader, model, criterion, optimizer, scheduler, epoch, dataset, 
             s = time.time()
         '''
     log(
-        "Epoch %d, Epoch status: %.4f, Training loss: %.4f, Learning rate: %.6f"
+        "Epoch %d, Training loss: %.4f, Learning rate: %.6f"
         % (
-            epoch + 1,
-            args.batch_size * args.world_size * float(i_batch) / len(dataset),
+            epoch,
             running_loss / step,
             optimizer.param_groups[0]['lr'],
         ), args

@@ -8,17 +8,16 @@ export CAND_LST="1 4 7"
 # export NUM_NODE=1
 export NUM_GRU_NODE=2
 
-echo "TRAINING ON SMALL_HOWTO100M & VALIDATING ON YOUCOOK2"
 for CANDIDATE in $CAND_LST;
   do
   for SEED in $SEED_LST;
     do
     echo "______________________________"
-    echo "Executing for seed=$SEED & candidate=$CANDIDATE"
-    name="pmilnce-seed_$SEED-candidate_$CANDIDATE"
+    echo "Executing MILNCE for seed=$SEED & candidate=$CANDIDATE"
+    name="milnce-seed_$SEED-candidate_$CANDIDATE"
     # OUT_FILE="$OUT_HEAD$name.txt"
     # ERR_FILE="$ERR_HEAD$name.txt"
-    bash train_single.sh $SEED $CANDIDATE $name
+    bash milnce_train_single.sh $SEED $CANDIDATE $name
     # sbatch -J $name -o $OUT_FILE  -e $ERR_FILE -t 4:00:00 -p gpu --gres=gpu:$NUM_GRU_NODE --mem=16G train_single.sh $SEED $CANDIDATE
     echo "Done."
     done

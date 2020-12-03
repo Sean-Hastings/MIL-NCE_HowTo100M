@@ -12,11 +12,10 @@ data/small_train_videos
 data/howto100m_videos.txt
 data/small_val_videos
 data/small_val_videos.csv
-
+data/training
 
 howto100m_captions.zip
 word2vec.zip
-
 
 ################################################################################
 # General Ignores
