@@ -184,7 +184,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # define loss function (criterion) and optimizer
     ''' #tag#
     '''
-    if args.pilmnce:
+    if args.pmilnce:
         criterion = PMILNCELoss()
     else:
         criterion = MILNCELoss()
