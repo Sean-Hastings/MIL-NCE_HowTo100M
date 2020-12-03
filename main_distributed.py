@@ -27,6 +27,9 @@ from utils import get_cosine_schedule_with_warmup
 
 allgather = AllGather.apply
 
+''' #tag#
+'''
+import pickle
 
 def main():
     args = get_args()
@@ -220,14 +223,15 @@ def main_worker(gpu, ngpus_per_node, args):
             args.rank, total_batch_size
         ), args
     )
+    print("_______________________________________________________________")
     print("Experiment loop started.")
     train_metrics = []
     val_metrics = []
-
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
         if epoch % 10 == 0 and args.evaluate:
+            print("Epoch: ", epoch)
             val_res = evaluate(test_loader, model, epoch, args, 'YouCook2')
             val_metrics.append(val_res)
         # train for one epoch
