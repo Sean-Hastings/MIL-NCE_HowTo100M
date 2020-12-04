@@ -120,5 +120,7 @@ def get_args(description='MILNCE'):
                              'multi node data parallel training')
     parser.add_argument('--pmilnce', default=False, action="store_true",
                         help='Flag to use the pmilnce loss, milnce otherwise.')
+    parser.add_argument('--grad_clip', default=0, type=float,
+                        help='Value to clip grad norms to. Grad clipping only active when > 0. ')
     args = parser.parse_args()
     return args

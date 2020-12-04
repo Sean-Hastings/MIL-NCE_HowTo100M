@@ -13,6 +13,7 @@ import torch.optim
 import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
+from torch.nn.utils.clip_grad import clip_grad_norm_
 
 import s3dg
 import numodel
@@ -308,6 +309,8 @@ def TrainOneBatch(model, opt, scheduler, data, loss_fun, args):
             text_embd = allgather(text_embd, args)
         loss = loss_fun(video_embd, text_embd)
     loss.backward()
+    if args.grad_clip > 0:
+        clip_grad_norm_(model.parameters(), args.grad_clip)
     opt.step()
     scheduler.step()
     return loss.item()
