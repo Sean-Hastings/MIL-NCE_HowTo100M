@@ -342,7 +342,13 @@ def evaluate(test_loader, model, epoch, args, dataset_name):
     if args.rank == 0:
         all_txt_embd = np.concatenate(all_txt_embd, axis=0)
         all_video_embd = np.concatenate(all_video_embd, axis=0)
-        metrics = compute_metrics(np.dot(all_txt_embd, all_video_embd.T))
+        if args.pmilnce:
+            all_txt_embd = torch.from_numpy(all_txt_embd)
+            all_video_embd = torch.from_numpy(all_video_embd)
+            distances = PMILNCELoss().code_compare(all_txt_embd, all_video_embd).numpy()
+        else:
+            distances = np.dot(all_txt_embd, all_video_embd.T)
+        metrics = compute_metrics(distances)
         log('Epoch {} results: {}'.format(epoch, metrics), args)
         return [epoch, metrics]
 
